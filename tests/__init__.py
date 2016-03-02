@@ -1,0 +1,2 @@
+from .test_hmc import TestClassHierarchy
+from .test_hmc import TestDecisionTreeHierarchicalClassifier

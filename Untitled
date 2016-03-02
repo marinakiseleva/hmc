@@ -1,0 +1,28 @@
+y_hat = dt._predict_stages(X_test)
+classes = pd.DataFrame(dt.predict(X_test), columns=['y_hat'], index=y.index)
+classes['y'] = pd.DataFrame(y)
+classes['correct'] = classes.apply(lambda row: 1 if row['y_hat'] == row['y'] else 0, axis=1)
+return classes[['correct']].mean()[0]
+
+y_hat = dt._predict_stages(X_test)
+y_test = pd.DataFrame(y_test)
+y_classes = pd.DataFrame(index=y_test.index)
+
+def assign_ancestor(classes, descendent):
+    while descendent not in classes and descendent != dt.class_hierarchy.root:
+        descendent = dt.class_hierarchy._get_parent(descendent)
+    if descendent == dt.class_hierarchy.root and dt.class_hierarchy.root not in classes:
+      descendent = ""
+    return descendent
+accuracies = []
+for stage in dt.stages:
+    true_col = stage['stage'] + "_true"
+    y_hat[stage['stage'] + "_true"] = y_test.apply(lambda row: assign_ancestor(stage['classes'], row[0]), axis=1)
+    y_hat[stage['stage'] + "_correct"] = y_hat.apply(lambda row: 1 if row[true_col] == row[stage['stage']] else 0, axis=1)
+    y_hat[stage['stage'] + "_included"] = y_hat.apply(lambda row: 1 if len(row[true_col]) > 0 else 0, axis=1)
+    accuracy = y_hat[['correct']].mean()[0]
+
+return accuracies
+classes = pd.DataFrame(self.predict(X), columns=['y_hat'], index=y.index)
+classes['y'] = pd.DataFrame(y)
+classes['correct'] = classes.apply(lambda row: 1 if row['y_hat'] == row['y'] else 0, axis=1)
