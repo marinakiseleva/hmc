@@ -37,6 +37,25 @@ class TestClassHierarchy(unittest.TestCase):
         # Adding a node should increase node count by 1
         self.assertEqual(old_number + 1, new_number)
 
+    def test_add_redundant_node(self):
+        ch = hmc.load_shades_class_hierachy()
+        ch.add_node('redundant_node', ch.root)
+        old_number = len(ch.nodes_())
+        ch.add_node('redundant_node', ch.root)
+        new_number = len(ch.nodes_())
+        # Adding a redundant node should not increase node count
+        self.assertEqual(old_number, new_number)
+
+    def test_add_root_node(self):
+        ch = hmc.load_shades_class_hierachy()
+        # Adding the root as a child should throw an exception
+        self.assertRaises(ValueError, ch.add_node, "colors", "light")
+
+    def test_add_dag_node(self):
+        ch = hmc.load_shades_class_hierachy()
+        # Adding a child with a new parent should throw an exception
+        self.assertRaises(ValueError, ch.add_node, "slate", "light")
+
 class TestDecisionTreeHierarchicalClassifier(unittest.TestCase):
 
     def test_fit(self):
@@ -103,6 +122,13 @@ class TestDecisionTreeHierarchicalClassifier(unittest.TestCase):
         accuracy_adjusted = dt.score_adjusted(X_test, y_test)
         # Adjusted accuracy should be at least as high as final class accuracy
         self.assertTrue(accuracy_adjusted >= accuracy)
+
+    def test_score_before_fit(self):
+        ch = hmc.load_shades_class_hierachy()
+        X, y = hmc.load_shades_data()
+        dt = hmc.DecisionTreeHierarchicalClassifier(ch)
+        # Scoring without fitting should raise exception
+        self.assertRaises(ValueError, dt.score, X, y)
 
 if __name__ == '__main__':
     unittest.main()
