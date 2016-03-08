@@ -19,9 +19,7 @@ ch.add_node("ash", "gray")
 ```
 Pretty print it.
 ```python
-ch.print_()
-```
-```
+>>> ch.print_()
 └─colors
   ├─dark
   │ ├─black
@@ -41,21 +39,22 @@ X_train, X_test, y_train, y_test = train_test_split(X, y, test_size = 0.50)
 
 Each parent node, of at least one child, will generate a decision tree classification stage. Stages are assigned depth first, ascending alpha.
 ```python
-dt.stages
-```
-```
+>>> dt.stages
 [{'classes': ['dark', 'light', 'colors'],
   'depth': 0,
   'labels': ['dark', 'light'],
   'stage': 'colors'},
 {'classes': ['black', 'gray', 'dark'],
-  'depth': 1, 'labels': ['black', 'gray'],
+  'depth': 1,
+  'labels': ['black', 'gray'],
   'stage': 'dark'},
 {'classes': ['ash', 'slate', 'gray'],
-  'depth': 2, 'labels': ['ash', 'slate'],
+  'depth': 2,
+  'labels': ['ash', 'slate'],
   'stage': 'gray'},
 {'classes': ['white', 'light'],
-  'depth': 1, 'labels': ['white'],
+  'depth': 1,
+  'labels': ['white'],
   'stage': 'light'}]
 ```
 The hmc.DecisionTreeHierarchicalClassifier is idiomatic to the sklearn tree.DecisionTreeClassifier. Fit, predict and score the same way. Traditional multi-classification accuracy is comparable.
@@ -71,7 +70,7 @@ dth = dth.fit(X_train, y_train)
 dth_predicted = dth.predict(X_test)
 dth_accuracy = dth.score(X_test, y_test)
 ```
-```
+```python
 >>> dt_accuracy
 0.46561886051080548
 >>> dth_accuracy
@@ -81,9 +80,10 @@ Hierarchically adjusted classification accuracy scoring is available in addition
 ```python
 dth_accuracy_adjusted = dth.score_adjusted(X_test, y_test)
 ```
-```
+```python
 >>> dth_accuracy_adjusted
 0.66115923150295042
 ```
+
 
 1. Vens, C., Struyf, J., Schietgat, L., Džeroski, S., & Blockeel, H. (2008). Decision trees for hierarchical multi-label classification. Mach Learn Machine Learning, 73(2), 185-214.
