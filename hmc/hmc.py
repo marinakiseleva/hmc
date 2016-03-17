@@ -72,6 +72,13 @@ class ClassHierarchy:
         """
         Add a child-parent node to the class hierarchy.
         """
+        if child == self.root:
+            raise ValueError('The hierarchy root: ' + str(child) + ' is not a valid child node.')
+        if child in self.nodes.keys():
+            if self.nodes[child] != parent:
+                raise ValueError('Node: ' + str(child) + ' has already been assigned parnet: ' + str(child) )
+            else:
+                return
         self.nodes[child] = parent
 
     def nodes_(self):
@@ -174,6 +181,11 @@ class DecisionTreeHierarchicalClassifier:
                 df[df[stage['target']].isin(stage['classes'])][[stage['target']]])
         return self
 
+    def _check_fit(self):
+        for stage in self.stages:
+            if 'tree' not in stage.keys():
+                raise ValueError('Estimators not fitted, call `fit` before exploiting the model.')
+
     def _predict_stages(self, X):
         # Score each stage
         for stage_number, stage in enumerate(self.stages):
@@ -195,6 +207,8 @@ class DecisionTreeHierarchicalClassifier:
         """
         Predict class for X.
         """
+        # Check that the trees have been fit
+        self._check_fit()
         y_hat = self._predict_stages(X)
         # Return only final predicted class
         return y_hat.ix[:, y_hat.shape[1] - 1].as_matrix()
@@ -203,6 +217,8 @@ class DecisionTreeHierarchicalClassifier:
         """
         Returns the mean accuracy on the given test data (X, y).
         """
+        # Check that the trees have been fit
+        self._check_fit()
         classes = pd.DataFrame(self.predict(X), columns=['y_hat'], index=y.index)
         classes['y'] = pd.DataFrame(y)
         classes['correct'] = classes.apply(lambda row: 1 if row['y_hat'] == row['y'] else 0, axis=1)
@@ -233,5 +249,7 @@ class DecisionTreeHierarchicalClassifier:
         """
         Returns the hierachy adjusted mean accuracy on the given test data (X, y).
         """
+        # Check that the trees have been fit
+        self._check_fit()
         accuracies = self._score_stages(X, y)
         return (1 / len(self.stages)) * sum(accuracies)
