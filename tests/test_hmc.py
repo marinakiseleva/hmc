@@ -29,6 +29,16 @@ class TestClassHierarchy(unittest.TestCase):
         ch = hmc.load_shades_class_hierachy()
         self.assertEqual(ch._get_children('dark'), ['black', 'gray'])
 
+    def test_get_ancestors(self):
+        ch = hmc.load_shades_class_hierachy()
+        self.assertEqual(ch._get_ancestors('ash'), ['gray', 'dark'])
+        self.assertEqual(len(ch._get_ancestors('colors')), 0)
+
+    def test_get_descendants(self):
+        ch = hmc.load_shades_class_hierachy()
+        self.assertEqual(ch._get_descendants('dark'), ['black', 'gray', 'ash', 'slate'])
+        self.assertEqual(len(ch._get_descendants('slate')), 0)
+
     def test_add_node(self):
         ch = hmc.load_shades_class_hierachy()
         old_number = len(ch.nodes_())

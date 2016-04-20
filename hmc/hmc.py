@@ -10,6 +10,8 @@ from sklearn import tree
 import numpy as np
 import pandas as pd
 
+import metrics
+
 __all__ = ["ClassHierarchy", "DecisionTreeHierarchicalClassifier"]
 
 # =============================================================================
@@ -39,6 +41,25 @@ class ClassHierarchy:
     def _get_children(self, parent):
         # Return a list of children nodes in alpha order
         return sorted([child for child, childs_parent in self.nodes.iteritems() if childs_parent == parent])
+
+    def _get_ancestors(self, child):
+        # Return a list of the ancestors of this node
+        # Not including root, not including the child
+        ancestors = []
+        while True:
+            child = self._get_parent(child)
+            if child == self.root:
+                break
+            ancestors.append(child)
+        return ancestors
+
+    def _get_descendants(self, parent):
+        # Return a list of the descendants of this node
+        # Not including the parent
+        descendants = []
+        self._depth_first(parent, descendants)
+        descendants.remove(parent)
+        return descendants
 
     def _is_descendant(self, parent, child):
         while child != self.class_hierarchy.root and child != parent:
@@ -219,10 +240,12 @@ class DecisionTreeHierarchicalClassifier:
         """
         # Check that the trees have been fit
         self._check_fit()
-        classes = pd.DataFrame(self.predict(X), columns=['y_hat'], index=y.index)
-        classes['y'] = pd.DataFrame(y)
-        classes['correct'] = classes.apply(lambda row: 1 if row['y_hat'] == row['y'] else 0, axis=1)
-        return classes[['correct']].mean()[0]
+        #classes = pd.DataFrame(self.predict(X), columns=['y_hat'], index=y.index)
+        #classes['y'] = pd.DataFrame(y)
+        #classes['correct'] = classes.apply(lambda row: 1 if row['y_hat'] == row['y'] else 0, axis=1)
+        #return classes[['correct']].mean()[0]
+        y_pred = pd.DataFrame(self.predict(X), columns=['y_hat'], index=y.index)
+        return metrics.accuracy_score(self.class_hierarchy, y, y_pred)
 
     def _score_stages(self, X, y):
         y_hat = self._predict_stages(X)
