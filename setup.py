@@ -7,5 +7,5 @@ setup(name='hmc',
       description='Decision tree based hierachical multi-classifier',
       author='David Warshaw',
       author_email='david.warshaw@gmail.com',
-      py_modules=['hmc', 'datasets'],
+      py_modules=['hmc', 'datasets', 'metrics'],
       requires=['sklearn', 'numpy', 'pandas'])
