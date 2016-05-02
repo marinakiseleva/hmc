@@ -240,39 +240,5 @@ class DecisionTreeHierarchicalClassifier:
         """
         # Check that the trees have been fit
         self._check_fit()
-        #classes = pd.DataFrame(self.predict(X), columns=['y_hat'], index=y.index)
-        #classes['y'] = pd.DataFrame(y)
-        #classes['correct'] = classes.apply(lambda row: 1 if row['y_hat'] == row['y'] else 0, axis=1)
-        #return classes[['correct']].mean()[0]
         y_pred = pd.DataFrame(self.predict(X), columns=['y_hat'], index=y.index)
         return metrics.accuracy_score(self.class_hierarchy, y, y_pred)
-
-    def _score_stages(self, X, y):
-        y_hat = self._predict_stages(X)
-        y = pd.DataFrame(y)
-        y_classes = pd.DataFrame(index=y.index)
-
-        def assign_ancestor(classes, descendent):
-            while descendent not in classes and descendent != self.class_hierarchy.root:
-                descendent = self.class_hierarchy._get_parent(descendent)
-            if descendent == self.class_hierarchy.root and self.class_hierarchy.root not in classes:
-              descendent = ""
-            return descendent
-
-        accuracies = []
-        for stage in self.stages:
-            y_hat[stage['stage'] + "_true"] = y.apply(lambda row: assign_ancestor(stage['classes'], row[0]), axis=1)
-            y_hat[stage['stage'] + "_correct"] = y_hat.apply(lambda row: 1 if row[stage['stage'] + "_true"] == row[stage['stage']] else 0, axis=1)
-            y_hat[stage['stage'] + "_included"] = y_hat.apply(lambda row: 1 if len(row[stage['stage'] + "_true"]) > 0 else 0, axis=1)
-            accuracy = y_hat[[stage['stage'] + "_correct"]].sum()[0] / y_hat[[stage['stage'] + "_included"]].sum()[0]
-            accuracies.append(accuracy)
-        return accuracies
-
-    def score_adjusted(self, X, y):
-        """
-        Returns the hierachy adjusted mean accuracy on the given test data (X, y).
-        """
-        # Check that the trees have been fit
-        self._check_fit()
-        accuracies = self._score_stages(X, y)
-        return (1 / len(self.stages)) * sum(accuracies)
