@@ -29,6 +29,16 @@ class TestClassHierarchy(unittest.TestCase):
         ch = hmc.load_shades_class_hierachy()
         self.assertEqual(ch._get_children('dark'), ['black', 'gray'])
 
+    def test_get_ancestors(self):
+        ch = hmc.load_shades_class_hierachy()
+        self.assertEqual(ch._get_ancestors('ash'), ['gray', 'dark'])
+        self.assertEqual(len(ch._get_ancestors('colors')), 0)
+
+    def test_get_descendants(self):
+        ch = hmc.load_shades_class_hierachy()
+        self.assertEqual(ch._get_descendants('dark'), ['black', 'gray', 'ash', 'slate'])
+        self.assertEqual(len(ch._get_descendants('slate')), 0)
+
     def test_add_node(self):
         ch = hmc.load_shades_class_hierachy()
         old_number = len(ch.nodes_())
@@ -110,18 +120,6 @@ class TestDecisionTreeHierarchicalClassifier(unittest.TestCase):
         accuracy_nonh = dt_nonh.score(X_test, y_test)
         # Hierachical classification should be at least as accurate as traditional classification
         self.assertTrue(accuracy >= accuracy_nonh)
-
-    def test_score_adjusted(self):
-        ch = hmc.load_shades_class_hierachy()
-        X, y = hmc.load_shades_data()
-        X_train, X_test, y_train, y_test = train_test_split(X, y,
-            test_size = 0.50, random_state = 0)
-        dt = hmc.DecisionTreeHierarchicalClassifier(ch)
-        dt = dt.fit(X_train, y_train)
-        accuracy = dt.score(X_test, y_test)
-        accuracy_adjusted = dt.score_adjusted(X_test, y_test)
-        # Adjusted accuracy should be at least as high as final class accuracy
-        self.assertTrue(accuracy_adjusted >= accuracy)
 
     def test_score_before_fit(self):
         ch = hmc.load_shades_class_hierachy()
