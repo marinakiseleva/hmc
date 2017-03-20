@@ -36,7 +36,7 @@ class ClassHierarchy:
 
     def _get_parent(self, child):
         # Return the parent of this node
-        return self.nodes[child] if child != self.root else self.root
+        return self.nodes[child] if (child in self.nodes and child != self.root) else self.root
 
     def _get_children(self, parent):
         # Return a list of children nodes in alpha order
@@ -215,6 +215,9 @@ class DecisionTreeHierarchicalClassifier:
             else:
                 y_hat[stage['stage']] = y_hat[self.stages[stage_number - 1]['stage']]
             dm = X[y_hat[stage['stage']].isin([stage['stage']])]
+            # Skip empty matrices
+            if dm.empty:
+                continue
             # combine_first reorders DataFrames, so we have to do this the ugly way
             y_hat_stage = pd.DataFrame(stage['tree'].predict(dm), index=dm.index)
             y_hat = y_hat.assign(stage_col=y_hat_stage)
