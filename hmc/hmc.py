@@ -5,18 +5,22 @@ The `hmc` module is a decision tree based model for hierachical multi-classifica
 from __future__ import print_function
 from __future__ import division
 
+import warnings
+
 from sklearn import tree
 
 import numpy as np
 import pandas as pd
 
 import metrics
+from exceptions import *
 
 __all__ = ["ClassHierarchy", "DecisionTreeHierarchicalClassifier"]
 
 # =============================================================================
 # Class Hierarchy
 # =============================================================================
+
 
 class ClassHierarchy:
     """
@@ -40,7 +44,8 @@ class ClassHierarchy:
 
     def _get_children(self, parent):
         # Return a list of children nodes in alpha order
-        return sorted([child for child, childs_parent in self.nodes.iteritems() if childs_parent == parent])
+        return sorted([child for child, childs_parent in
+                       self.nodes.iteritems() if childs_parent == parent])
 
     def _get_ancestors(self, child):
         # Return a list of the ancestors of this node
@@ -97,7 +102,8 @@ class ClassHierarchy:
             raise ValueError('The hierarchy root: ' + str(child) + ' is not a valid child node.')
         if child in self.nodes.keys():
             if self.nodes[child] != parent:
-                raise ValueError('Node: ' + str(child) + ' has already been assigned parnet: ' + str(child) )
+                raise ValueError('Node: ' + str(child) + ' has already been assigned parent: ' +
+                                 str(child))
             else:
                 return
         self.nodes[child] = parent
@@ -126,6 +132,7 @@ class ClassHierarchy:
 # Decision Tree Hierarchical Classifier
 # =============================================================================
 
+
 class DecisionTreeHierarchicalClassifier:
 
     def __init__(self, class_hierarchy):
@@ -145,7 +152,8 @@ class DecisionTreeHierarchicalClassifier:
             indent += u"\u2502   "
         print(hand + " " + str(node))
         for k, count in enumerate(tree.tree_.value[node][0]):
-            print(indent + str(tree.classes_[k]) + ":" + str(stage(count / tree.tree_.n_node_samples[node], 2)))
+            print(indent + str(tree.classes_[k]) + ":" +
+                  str(stage(count / tree.tree_.n_node_samples[node], 2)))
         self._depth_first_class_prob(tree, tree.tree_.children_right[node], indent, False, "R")
         self._depth_first_class_prob(tree, tree.tree_.children_left[node], indent, True, "L")
 
@@ -183,8 +191,7 @@ class DecisionTreeHierarchicalClassifier:
         for stage_number, stage in enumerate(self.stages):
             df[stage['target']] = pd.DataFrame.apply(
                 df[[target]],
-                lambda row: self._recode_label(stage['classes'],
-                row[target]),
+                lambda row: self._recode_label(stage['classes'], row[target]),
                 axis=1)
         return df, dm_cols
 
@@ -196,27 +203,41 @@ class DecisionTreeHierarchicalClassifier:
         df, dm_cols = self._prep_data(X, y)
         # Fit each stage
         for stage_number, stage in enumerate(self.stages):
+            dm = df[df[stage['target']].isin(stage['classes'])][dm_cols]
+            y_stage = df[df[stage['target']].isin(stage['classes'])][[stage['target']]]
             stage['tree'] = tree.DecisionTreeClassifier()
-            stage['tree'] = stage['tree'].fit(
-                df[df[stage['target']].isin(stage['classes'])][dm_cols],
-                df[df[stage['target']].isin(stage['classes'])][[stage['target']]])
+            if dm.empty:
+                warnings.warn('No samples to fit for stage ' + str(stage['stage']),
+                              NoSamplesForStageWarning)
+                continue
+            stage['tree'] = stage['tree'].fit(dm, y_stage)
         return self
 
     def _check_fit(self):
         for stage in self.stages:
             if 'tree' not in stage.keys():
-                raise ValueError('Estimators not fitted, call `fit` before exploiting the model.')
+                raise ClassifierNotFitError(
+                    'Estimators not fitted, call `fit` before exploiting the model.')
 
     def _predict_stages(self, X):
         # Score each stage
         for stage_number, stage in enumerate(self.stages):
             if stage_number == 0:
-                y_hat = pd.DataFrame([self.class_hierarchy.root] * len(X), columns=[self.class_hierarchy.root], index=X.index)
+                y_hat = pd.DataFrame(
+                    [self.class_hierarchy.root] * len(X),
+                    columns=[self.class_hierarchy.root],
+                    index=X.index)
             else:
                 y_hat[stage['stage']] = y_hat[self.stages[stage_number - 1]['stage']]
             dm = X[y_hat[stage['stage']].isin([stage['stage']])]
             # Skip empty matrices
             if dm.empty:
+                warnings.warn('No samples to predict for stage ' + str(stage['stage']),
+                              NoSamplesForStageWarning)
+                continue
+            if not stage['tree'].tree_:
+                warnings.warn('No tree was fit for stage ' + str(stage['stage']),
+                              StageNotFitWarning)
                 continue
             # combine_first reorders DataFrames, so we have to do this the ugly way
             y_hat_stage = pd.DataFrame(stage['tree'].predict(dm), index=dm.index)
