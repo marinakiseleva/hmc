@@ -99,11 +99,11 @@ class ClassHierarchy:
         Add a child-parent node to the class hierarchy.
         """
         if child == self.root:
-            raise ValueError('The hierarchy root: ' + str(child) + ' is not a valid child node.')
+            raise ValueError('The hierarchy root: ' + child.encode('utf-8') + ' is not a valid child node.')
         if child in self.nodes.keys():
             if self.nodes[child] != parent:
-                raise ValueError('Node: ' + str(child) + ' has already been assigned parent: ' +
-                                 str(child))
+                raise ValueError('Node: ' + child.encode('utf-8') + ' has already been assigned parent: ' +
+                                 child.encode('utf-8'))
             else:
                 return
         self.nodes[child] = parent
@@ -150,10 +150,10 @@ class DecisionTreeHierarchicalClassifier:
         else:
             print(u"\u251C\u2500", end="")
             indent += u"\u2502   "
-        print(hand + " " + str(node))
+        print(hand + " " + node.encode('utf-8'))
         for k, count in enumerate(tree.tree_.value[node][0]):
-            print(indent + str(tree.classes_[k]) + ":" +
-                  str(stage(count / tree.tree_.n_node_samples[node], 2)))
+            print(indent + tree.classes_[k].encode('utf-8') + ":" +
+                  stage(count / tree.tree_.n_node_samples[node], 2).encode('utf-8'))
         self._depth_first_class_prob(tree, tree.tree_.children_right[node], indent, False, "R")
         self._depth_first_class_prob(tree, tree.tree_.children_left[node], indent, True, "L")
 
@@ -207,7 +207,7 @@ class DecisionTreeHierarchicalClassifier:
             y_stage = df[df[stage['target']].isin(stage['classes'])][[stage['target']]]
             stage['tree'] = tree.DecisionTreeClassifier()
             if dm.empty:
-                warnings.warn('No samples to fit for stage ' + str(stage['stage']),
+                warnings.warn('No samples to fit for stage ' + stage['stage'].encode('utf-8'),
                               NoSamplesForStageWarning)
                 continue
             stage['tree'] = stage['tree'].fit(dm, y_stage)
@@ -232,11 +232,11 @@ class DecisionTreeHierarchicalClassifier:
             dm = X[y_hat[stage['stage']].isin([stage['stage']])]
             # Skip empty matrices
             if dm.empty:
-                warnings.warn('No samples to predict for stage ' + str(stage['stage']),
+                warnings.warn('No samples to predict for stage ' + stage['stage'].encode('utf-8'),
                               NoSamplesForStageWarning)
                 continue
             if not stage['tree'].tree_:
-                warnings.warn('No tree was fit for stage ' + str(stage['stage']),
+                warnings.warn('No tree was fit for stage ' + stage['stage'].encode('utf-8'),
                               StageNotFitWarning)
                 continue
             # combine_first reorders DataFrames, so we have to do this the ugly way

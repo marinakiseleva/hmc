@@ -72,28 +72,28 @@ dth_accuracy = dth.score(X_test, y_test)
 ```
 ```python
 >>> dt_accuracy
-0.4400785854616896
+0.48526522593320237
 >>> dth_accuracy
-0.46561886051080548
+0.45776031434184677
 ```
 Additional hierarchical multi-classification specific metrics [2] are provided.
 ```python
 import hmc.metrics as metrics
 
->>> metrics.accuracy_score(ch, dth_predicted, y_test)
-0.46561886051080548
->>> metrics.precision_score_ancestors(ch, dth_predicted, y_test)
-0.8108614232209738
->>> metrics.recall_score_ancestors(ch, dth_predicted, y_test)
-0.7988929889298892
->>> metrics.f1_score_ancestors(ch, dth_predicted, y_test)
-0.8048327137546468
->>> metrics.precision_score_descendants(ch, dth_predicted, y_test)
-0.6160337552742616
->>> metrics.recall_score_descendants(ch, dth_predicted, y_test)
-0.6576576576576577
->>> metrics.f1_score_descendants(ch, dth_predicted, y_test)
-0.636165577342048
+>>> metrics.accuracy_score(ch, y_test, dth_predicted)
+0.45776031434184677
+>>> metrics.precision_score_ancestors(ch, y_test, dth_predicted)
+0.8
+>>> metrics.recall_score_ancestors(ch, y_test, dth_predicted)
+0.8052190121155638
+>>> metrics.f1_score_ancestors(ch, y_test, dth_predicted)
+0.8026010218300047
+>>> metrics.precision_score_descendants(ch, y_test, dth_predicted)
+0.647191011235955
+>>> metrics.recall_score_descendants(ch, y_test, dth_predicted)
+0.6260869565217392
+>>> metrics.f1_score_descendants(ch, y_test, dth_predicted)
+0.63646408839779
 ```
 Ancestor and Descendant precision and recall scores are calculated as the fraction of shared ancestor or descendant classes over the sum of either the predicted or true class for precision and recall respectively [3].
 ```python
@@ -101,30 +101,30 @@ true = ['dark', 'white', 'gray']
 
 pred_sibling = ['dark', 'white', 'black']
 
->>> metrics.accuracy_score(ch, pred_sibling, true)
+>>> metrics.accuracy_score(ch, true, pred_sibling)
 0.66666666666666663
->>> metrics.precision_score_ancestors(ch, pred_sibling, true)
+>>> metrics.precision_score_ancestors(ch, true, pred_sibling)
 0.8
->>> metrics.precision_score_descendants(ch, pred_sibling, true)
-0.6666666666666666
+>>> metrics.precision_score_descendants(ch, true, pred_sibling)
+0.8571428571428571
 
 pred_narrower = ['dark', 'white', 'ash']
 
->>> metrics.accuracy_score(ch, pred_narrower, true)
+>>> metrics.accuracy_score(ch, true, pred_narrower)
 0.66666666666666663
->>> metrics.precision_score_ancestors(ch, pred_narrower, true)
+>>> metrics.precision_score_ancestors(ch, true, pred_narrower)
+0.8333333333333334
+>>> metrics.precision_score_descendants(ch, true, pred_narrower)
 1.0
->>> metrics.precision_score_descendants(ch, pred_narrower, true)
-0.7777777777777778
 
 pred_broader = ['dark', 'white', 'dark']
 
->>> metrics.accuracy_score(ch, pred_broader, true)
+>>> metrics.accuracy_score(ch, true, pred_broader)
 0.66666666666666663
->>> metrics.precision_score_ancestors(ch, pred_broader, true)
-0.8
->>> metrics.precision_score_descendants(ch, pred_broader, true)
+>>> metrics.precision_score_ancestors(ch, true, pred_broader)
 1.0
+>>> metrics.precision_score_descendants(ch, true, pred_broader)
+0.8181818181818182
 ```
 
 1. Vens, C., Struyf, J., Schietgat, L., Džeroski, S., & Blockeel, H. (2008). Decision trees for hierarchical multi-label classification. Mach Learn Machine Learning, 73(2), 185-214.
