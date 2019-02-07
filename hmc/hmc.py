@@ -34,6 +34,7 @@ class ClassHierarchy:
     ----------
 
     """
+
     def __init__(self, root):
         self.root = root
         self.nodes = {}
@@ -45,7 +46,7 @@ class ClassHierarchy:
     def _get_children(self, parent):
         # Return a list of children nodes in alpha order
         return sorted([child for child, childs_parent in
-                       self.nodes.iteritems() if childs_parent == parent])
+                       self.nodes.items() if childs_parent == parent])
 
     def _get_ancestors(self, child):
         # Return a list of the ancestors of this node
@@ -99,11 +100,12 @@ class ClassHierarchy:
         Add a child-parent node to the class hierarchy.
         """
         if child == self.root:
-            raise ValueError('The hierarchy root: ' + child.encode('utf-8') + ' is not a valid child node.')
+            raise ValueError('The hierarchy root: ' +
+                             child.encode('utf-8') + ' is not a valid child node.')
         if child in self.nodes.keys():
             if self.nodes[child] != parent:
-                raise ValueError('Node: ' + child.encode('utf-8') + ' has already been assigned parent: ' +
-                                 child.encode('utf-8'))
+                raise ValueError('Node: ' + child +
+                                 ' has already been assigned parent: ' + self.nodes[child])
             else:
                 return
         self.nodes[child] = parent
@@ -154,28 +156,35 @@ class DecisionTreeHierarchicalClassifier:
         for k, count in enumerate(tree.tree_.value[node][0]):
             print(indent + tree.classes_[k].encode('utf-8') + ":" +
                   stage(count / tree.tree_.n_node_samples[node], 2).encode('utf-8'))
-        self._depth_first_class_prob(tree, tree.tree_.children_right[node], indent, False, "R")
-        self._depth_first_class_prob(tree, tree.tree_.children_left[node], indent, True, "L")
+        self._depth_first_class_prob(tree, tree.tree_.children_right[
+                                     node], indent, False, "R")
+        self._depth_first_class_prob(tree, tree.tree_.children_left[
+                                     node], indent, True, "L")
 
     def _depth_first_stages(self, stages, parent, depth):
+        """
+        Creates stages and stores them in a list. Stages keep track of the depth and corresponding classes
+        """
         # Get the children of this parent
         children = self.class_hierarchy._get_children(parent)
         # If there are children, build a classification stage
         if len(children) > 0:
             # Assign stage props and append
             stage = {}
-            stage['depth'] = depth
-            stage['stage'] = parent
-            stage['labels'] = children
+            stage['depth'] = depth  # Depth in tree
+            stage['stage'] = parent  # Parent type
+            stage['labels'] = children  # All direct children of this parent
+            # Current children and parent classes
             stage['classes'] = stage['labels'] + [stage['stage']]
-            stage['target'] = 'target_stage_' + parent
+            stage['target'] = 'target_stage_' + parent  # parent is name of stage
             stages.append(stage)
             # Recurse through children
             for node in children:
                 self._depth_first_stages(stages, node, depth + 1)
 
     def _recode_label(self, classes, label):
-        # Reassign labels to their parents until either we hit the root, or an output class
+        # Reassign labels to their parents until either we hit the root, or an
+        # output class
         while label != self.class_hierarchy.root and label not in classes:
             label = self.class_hierarchy._get_parent(label)
         return label
@@ -183,12 +192,14 @@ class DecisionTreeHierarchicalClassifier:
     def _prep_data(self, X, y):
         # Design matrix columns
         dm_cols = range(0, X.shape[1])
-        # Target columns
+        # Target column is last one, because y is concated to X
         target = X.shape[1]
         # Dataframe
         df = pd.concat([X, y], axis=1, ignore_index=True)
         # Create a target column for each stage with the recoded labels
         for stage_number, stage in enumerate(self.stages):
+            # New target column for the stage: lowest hierarchy class that this class
+            # inherits from per each stage (can be itself)
             df[stage['target']] = pd.DataFrame.apply(
                 df[[target]],
                 lambda row: self._recode_label(stage['classes'], row[target]),
@@ -203,13 +214,21 @@ class DecisionTreeHierarchicalClassifier:
         df, dm_cols = self._prep_data(X, y)
         # Fit each stage
         for stage_number, stage in enumerate(self.stages):
-            dm = df[df[stage['target']].isin(stage['classes'])][dm_cols]
+            # dm = df[df[stage['target']].isin(stage['classes'])][dm_cols]
+
+            # dm contains feature data for samples whose target value is stage's class
+            # or direct subclass
+            dm = df[df[stage['target']].isin(stage['classes'])].iloc[:, list(dm_cols)]
+            # corresponding target values for dm
             y_stage = df[df[stage['target']].isin(stage['classes'])][[stage['target']]]
-            stage['tree'] = tree.DecisionTreeClassifier()
+            stage['tree'] = tree.DecisionTreeClassifier(
+                criterion='entropy', splitter='best', max_depth=30, min_samples_split=4, min_samples_leaf=2)
             if dm.empty:
-                warnings.warn('No samples to fit for stage ' + stage['stage'].encode('utf-8'),
-                              NoSamplesForStageWarning)
+                warnings.warn('No samples to fit for stage ' +
+                              stage['stage'],  NoSamplesForStageWarning)
                 continue
+            # Fit decision tree for this stage; only sample whose target is the
+            # stage's class or direct subclass
             stage['tree'] = stage['tree'].fit(dm, y_stage)
         return self
 
@@ -223,29 +242,39 @@ class DecisionTreeHierarchicalClassifier:
         # Score each stage
         for stage_number, stage in enumerate(self.stages):
             if stage_number == 0:
+                # Column of length X with root node as all values
                 y_hat = pd.DataFrame(
                     [self.class_hierarchy.root] * len(X),
                     columns=[self.class_hierarchy.root],
                     index=X.index)
             else:
+                # target is children of this stage (first stage - children of root
+                # values)
                 y_hat[stage['stage']] = y_hat[self.stages[stage_number - 1]['stage']]
+
+            # dm: rows that are equal or subtypes of this stage
             dm = X[y_hat[stage['stage']].isin([stage['stage']])]
+
             # Skip empty matrices
             if dm.empty:
-                warnings.warn('No samples to predict for stage ' + stage['stage'].encode('utf-8'),
+                warnings.warn('No samples to predict for stage ' + stage['stage'],
                               NoSamplesForStageWarning)
                 continue
             if not stage['tree'].tree_:
-                warnings.warn('No tree was fit for stage ' + stage['stage'].encode('utf-8'),
+                warnings.warn('No tree was fit for stage ' + stage['stage'],
                               StageNotFitWarning)
                 continue
             # combine_first reorders DataFrames, so we have to do this the ugly way
+            # Predict superclass target for these rows and save in y_hat_stage column
+            # using this stage's tree (column values are children of this stage)
             y_hat_stage = pd.DataFrame(stage['tree'].predict(dm), index=dm.index)
             y_hat = y_hat.assign(stage_col=y_hat_stage)
+            # Any NULLS are replaced with parent name of this stage
             y_hat.stage_col = y_hat.stage_col.fillna(y_hat[stage['stage']])
             y_hat = y_hat.drop(stage['stage'], axis=1)
             y_hat = y_hat.rename(columns={'stage_col': stage['stage']})
-        # Return predicted class for each stage
+
+        # y_hat: dataframe of predicted classes for each stage
         return y_hat
 
     def predict(self, X):

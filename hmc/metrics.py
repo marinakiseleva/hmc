@@ -36,7 +36,30 @@ def accuracy_score(class_hierarchy, y_true, y_pred):
     return skmetrics.accuracy_score(y_true, y_pred)
 
 
+def precision_score_hierarchy(class_hierarchy, y_true, y_pred, level=1):
+    """
+    Get overall accuracy at a particular level in the hierarchy
+    """
+    true_sum = len(y_pred)
+    predicted_sum = 0
+
+    y_true, y_pred = _check_targets_hmc(y_true, y_pred)
+    if level == 1:
+        # Get first level of hierarchy
+        level_nodes = class_hierarchy._get_children(class_hierarchy.root)
+    for true, pred in zip(y_true.tolist(), y_pred.tolist()):
+        true_set = set([true] + class_hierarchy._get_ancestors(true))
+        pred_set = set([pred] + class_hierarchy._get_ancestors(pred))
+        # True class of the level passed in
+        class_level = list(true_set.intersection(level_nodes))[0]
+        if class_level in pred_set:
+            predicted_sum += 1
+
+    return predicted_sum / true_sum
+
 # Hierarchy Precision / Recall
+
+
 def _aggregate_class_sets(set_function, y_true, y_pred):
     intersection_sum = 0
     true_sum = 0
@@ -87,7 +110,8 @@ def recall_score_descendants(class_hierarchy, y_true, y_pred):
 # Hierarchy Fscore
 def _fbeta_score_class_sets(set_function, y_true, y_pred, beta=1):
     y_true, y_pred = _check_targets_hmc(y_true, y_pred)
-    true_sum, predicted_sum, intersection_sum = _aggregate_class_sets(set_function, y_true, y_pred)
+    true_sum, predicted_sum, intersection_sum = _aggregate_class_sets(
+        set_function, y_true, y_pred)
     precision = intersection_sum / predicted_sum
     recall = intersection_sum / true_sum
     return ((beta ** 2 + 1) * precision * recall) / ((beta ** 2 * precision) + recall)
