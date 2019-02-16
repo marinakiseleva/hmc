@@ -40,22 +40,29 @@ def precision_score_hierarchy(class_hierarchy, y_true, y_pred, level=1):
     """
     Get overall accuracy at a particular level in the hierarchy
     """
-    true_sum = len(y_pred)
     predicted_sum = 0
 
     y_true, y_pred = _check_targets_hmc(y_true, y_pred)
     if level == 1:
         # Get first level of hierarchy
         level_nodes = class_hierarchy._get_children(class_hierarchy.root)
+    else:
+        raise ValueError(
+            "Only handles first level in hierarchy right now. level must = 1.")
+    class_precisions = {}
+    for node in level_nodes:
+        class_precisions[node] = [0, 0]
+
     for true, pred in zip(y_true.tolist(), y_pred.tolist()):
         true_set = set([true] + class_hierarchy._get_ancestors(true))
         pred_set = set([pred] + class_hierarchy._get_ancestors(pred))
-        # True class of the level passed in
-        class_level = list(true_set.intersection(level_nodes))[0]
-        if class_level in pred_set:
-            predicted_sum += 1
+        # Expected class type for this level in the hierarchy
+        exp_class = list(true_set.intersection(level_nodes))[0]
+        class_precisions[exp_class][1] += 1
+        if exp_class in pred_set:
+            class_precisions[exp_class][0] += 1
 
-    return predicted_sum / true_sum
+    return class_precisions
 
 # Hierarchy Precision / Recall
 

@@ -12,8 +12,8 @@ from sklearn import tree
 import numpy as np
 import pandas as pd
 
-import metrics
-from exceptions import *
+from hmc import metrics
+from hmc.exceptions import *
 
 __all__ = ["ClassHierarchy", "DecisionTreeHierarchicalClassifier"]
 
